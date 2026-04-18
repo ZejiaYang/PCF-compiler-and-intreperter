@@ -1,0 +1,11 @@
+(test
+ (name test_pcf)
+ (libraries pcf alcotest))
+
+(test
+ (name test_pp)
+ (libraries pcf alcotest))
+
+(test
+ (name test_eval)
+ (libraries pcf alcotest))

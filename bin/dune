@@ -1,0 +1,4 @@
+(executable
+ (public_name pcf)
+ (name main)
+ (libraries pcf))
