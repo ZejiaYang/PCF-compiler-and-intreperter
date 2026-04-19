@@ -58,10 +58,31 @@ let rec eval_by_name (p : term) : term =
   | LET (x, p1, p2) -> eval_by_name (APP (FUN (x, p2), p1))
   | FIX (x, p1) -> eval_by_name (APP (FUN (x, p1), p))
 
-let test1 () =
-  let a = APP (APP (FUN ("x", FUN ("x", VAR "x")), INT 2), INT 3) in
-  eval_by_name a
 (*
 a Call-by-value evaluator for PCF
 closed term -> value
 *)
+let rec eval_by_value (p : term) : term =
+  match p with
+  | VAR _ -> failwith "input not closed term"
+  | FUN _ | INT _ -> p
+  | BOP (p1, op, p2) -> (
+      let v1 = eval_by_value p1 in
+      let v2 = eval_by_value p2 in
+      match (v1, op, v2) with
+      | INT n1, ADD, INT n2 -> INT (n1 + n2)
+      | INT n1, MINUS, INT n2 -> INT (n1 - n2)
+      | INT n1, MULTI, INT n2 -> INT (n1 * n2)
+      | INT n1, DIVIDE, INT 0 -> failwith "divide by zero"
+      | INT n1, DIVIDE, INT n2 -> INT (n1 / n2)
+      | _ -> failwith "binary operands not integer")
+  | IFZ (p1, p2, p3) -> (
+      match eval_by_value p1 with
+      | INT 0 -> eval_by_value p2
+      | _ -> eval_by_value p3)
+  | APP (p1, p2) -> (
+      match eval_by_value p1 with
+      | FUN (x, t) -> eval_by_value (sub x (eval_by_value p2) t)
+      | _ -> failwith "not a function in application")
+  | LET (x, p1, p2) -> eval_by_value (APP (FUN (x, p2), p1))
+  | FIX (x, p1) -> eval_by_value (APP (FUN (x, p1), p))
