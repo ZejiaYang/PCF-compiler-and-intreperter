@@ -7,9 +7,9 @@
 (source
  (github username/reponame))
 
-(authors "Author Name <author@example.com>")
+(authors "Zejia Yang <zejiayang2003@example.com>")
 
-(maintainers "Maintainer Name <maintainer@example.com>")
+(maintainers "Zejia Yang <zejiayang2003@example.com>")
 
 (license LICENSE)
 
@@ -19,7 +19,9 @@
  (name pcf)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml)
+ (depends
+  ocaml
+  (alcotest :with-test))
  (tags
   ("add topics" "to describe" your project)))
 
