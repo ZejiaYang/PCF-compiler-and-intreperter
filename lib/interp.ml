@@ -6,7 +6,7 @@ and closure = term * env
 type interpreter = closure -> closure
 
 let rec find (x : string) = function
-  | END -> failwith "cannot find x in env"
+  | END -> failwith ("Unbound var " ^ x)
   | NEXT (y, t, e) -> if x == y then t else find x e
 
 let rec interp_by_name : interpreter =
