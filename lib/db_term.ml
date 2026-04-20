@@ -1,14 +1,14 @@
 open Term
 
-type db_term =
+type dbterm =
   | DBVAR of int
-  | DBFUN of db_term
-  | DBAPP of db_term * db_term
+  | DBFUN of dbterm
+  | DBAPP of dbterm * dbterm
   | DBINT of int
-  | DBBOP of db_term * op * db_term
-  | DBIFZ of db_term * db_term * db_term
-  | DBFIX of db_term
-  | DBLET of db_term * db_term
+  | DBBOP of dbterm * op * dbterm
+  | DBIFZ of dbterm * dbterm * dbterm
+  | DBFIX of dbterm
+  | DBLET of dbterm * dbterm
 
 type var_env = END | NEXT of string * var_env
 
@@ -20,7 +20,7 @@ let rec find_pos (x : string) (venv : var_env) =
   in
   find_pos_acc x venv 0
 
-let rec translate_db (t : term) (venv : var_env) : db_term =
+let rec translate_db (t : term) (venv : var_env) : dbterm =
   match t with
   | VAR x -> DBVAR (find_pos x venv)
   | INT n -> DBINT n

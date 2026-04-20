@@ -13,3 +13,7 @@
 (test
  (name test_interp)
  (libraries pcf alcotest))
+
+(test
+ (name test_db_interp)
+ (libraries pcf alcotest))

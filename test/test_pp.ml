@@ -1,5 +1,5 @@
 open Pcf.Pp_term
-open Pcf.Trans
+open Pcf.Db_term
 open Pcf.Term
 open Alcotest
 
@@ -58,6 +58,20 @@ let db_tests =
           (pp_to_string pp_db_term (DBLET (DBINT 1, DBVAR 0))));
     test_case "fix" `Quick (fun () ->
         check_pp "fix" "fix . #0" (pp_to_string pp_db_term (DBFIX (DBVAR 0))));
+    test_case "fix_trans" `Quick (fun () ->
+        check_pp "fix_trans"
+          "fix . fun . -> if #0 = 0 then 1 else (#0 * (#1 (#0 - 1)))"
+          (pp_to_string pp_db_term
+             (translate_db
+                (FIX
+                   ( "f",
+                     FUN
+                       ( "x",
+                         IFZ
+                           ( VAR "x",
+                             INT 1,
+                             VAR "x" ** APP (VAR "f", VAR "x" -- INT 1) ) ) ))
+                END)));
   ]
 
 (* --- Main Entry Point --- *)

@@ -1,5 +1,5 @@
 open Term
-open Trans
+open Db_term
 open Format
 
 let pp_op fmt = function
