@@ -46,3 +46,48 @@ let cbn_tests =
       expected = VINT 10;
     };
   ]
+
+let standard_tests : abstract_test list =
+  [
+    {
+      name = "shadowing";
+      term = APP (APP (FUN ("x", FUN ("x", VAR "x")), INT 2), INT 3);
+      expected = VINT 3;
+    };
+    {
+      name = "higher_order";
+      term =
+        (let inner = FUN ("x", BOP (VAR "x", ADD, VAR "y")) in
+         APP (APP (FUN ("x", FUN ("y", APP (inner, VAR "x"))), INT 4), INT 5));
+      expected = VINT 9;
+    };
+    {
+      name = "static_binding";
+      term =
+        (let f_body = FUN ("y", BOP (VAR "y", ADD, VAR "x")) in
+         LET
+           ( "x",
+             INT 4,
+             LET ("f", f_body, LET ("x", INT 5, APP (VAR "f", INT 6))) ));
+      expected = VINT 10;
+    };
+    {
+      name = "factorial";
+      term =
+        (let fact =
+           FIX
+             ( "f",
+               FUN
+                 ( "x",
+                   IFZ
+                     ( VAR "x",
+                       INT 1,
+                       BOP
+                         ( VAR "x",
+                           MULTI,
+                           APP (VAR "f", BOP (VAR "x", MINUS, INT 1)) ) ) ) )
+         in
+         APP (fact, INT 3));
+      expected = VINT 6;
+    };
+  ]
