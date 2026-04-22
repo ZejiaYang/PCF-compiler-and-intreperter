@@ -61,8 +61,8 @@ let rec translate_db (t : term) (venv : var_env) : dbterm =
         "illegal construct, this is a langauge with only functions can be \
          recursively defined"
   | PAIR (p1, p2) -> DBPAIR (translate_db p1 venv, translate_db p2 venv)
-  | FST p -> DBFST (translate_db t venv)
-  | SND p -> DBSND (translate_db t venv)
+  | FST p -> DBFST (translate_db p venv)
+  | SND p -> DBSND (translate_db p venv)
 
 let rec translate_env (tenv : env) : var_env * dbenv =
   match tenv with
