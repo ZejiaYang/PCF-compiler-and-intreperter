@@ -18,6 +18,11 @@ let rec sub (x : string) (u : term) (t : term) : term =
   | PAIR (p1, p2) -> PAIR (sub' p1, sub' p2)
   | FST t -> FST (sub' t)
   | SND t -> SND (sub' t)
+  | NIL -> NIL
+  | CONS (t, l) -> CONS (sub' t, sub' l)
+  | IFNIL (y, p1, p2) -> IFNIL (sub' y, sub' p1, sub' p2)
+  | HD t -> HD (sub' t)
+  | TL t -> TL (sub' t)
 
 (*
 * (fun x -> fun x -> x) 2 3
@@ -63,6 +68,15 @@ let rec eval_by_name (p : term) : term =
   | PAIR (p1, p2) -> PAIR (eval_by_name p1, eval_by_name p2)
   | FST t -> FST (eval_by_name t)
   | SND t -> SND (eval_by_name t)
+  | NIL -> NIL
+  | CONS (n, l) -> CONS (eval_by_name n, eval_by_name l)
+  | IFNIL (y, p1, p2) -> (
+      match eval_by_name y with
+      | NIL -> eval_by_name p1
+      | CONS _ -> eval_by_name p2
+      | _ -> failwith "ifnil condition not list")
+  | HD t -> HD (eval_by_name t)
+  | TL t -> TL (eval_by_name t)
 
 (*
 a Call-by-value evaluator for PCF
@@ -84,8 +98,8 @@ let rec eval_by_value (p : term) : term =
       | _ -> failwith "binary operands not integer")
   | IFZ (p1, p2, p3) -> (
       match eval_by_value p1 with
-      | INT 0 -> eval_by_value p2
-      | _ -> eval_by_value p3)
+      | INT n -> if n = 0 then eval_by_value p2 else eval_by_value p3
+      | _ -> failwith "ifz condition not bool")
   | APP (p1, p2) -> (
       match eval_by_value p1 with
       | FUN (x, t) -> eval_by_value (sub x (eval_by_value p2) t)
@@ -95,3 +109,12 @@ let rec eval_by_value (p : term) : term =
   | PAIR (p1, p2) -> PAIR (eval_by_value p1, eval_by_value p2)
   | FST t -> FST (eval_by_value t)
   | SND t -> SND (eval_by_value t)
+  | NIL -> NIL
+  | CONS (t, l) -> CONS (eval_by_value t, eval_by_value l)
+  | IFNIL (y, p1, p2) -> (
+      match eval_by_value y with
+      | NIL -> eval_by_value p1
+      | CONS _ -> eval_by_value p2
+      | _ -> failwith "ifnil condition not list")
+  | HD t -> HD (eval_by_value t)
+  | TL t -> TL (eval_by_value t)

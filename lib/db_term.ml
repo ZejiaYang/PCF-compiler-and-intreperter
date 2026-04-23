@@ -12,6 +12,11 @@ type dbterm =
   | DBPAIR of dbterm * dbterm
   | DBFST of dbterm
   | DBSND of dbterm
+  | DBNIL
+  | DBCONS of dbterm * dbterm
+  | DBIFNIL of dbterm * dbterm * dbterm
+  | DBHD of dbterm
+  | DBTL of dbterm
 
 type var_env = VEND | VNEXT of string * var_env
 
@@ -21,6 +26,8 @@ and dbvalue =
   | VDBINT of int
   | VDBFUN of dbterm * dbenv
   | VDBFIXFUN of dbterm * dbenv
+  | VDBNIL
+  | VDBCONS of dbvalue * dbvalue
   | VDBPAIR of dbvalue * dbvalue
   | DBTHUNK of dbterm * dbenv
 
@@ -63,6 +70,15 @@ let rec translate_db (t : term) (venv : var_env) : dbterm =
   | PAIR (p1, p2) -> DBPAIR (translate_db p1 venv, translate_db p2 venv)
   | FST p -> DBFST (translate_db p venv)
   | SND p -> DBSND (translate_db p venv)
+  | NIL -> DBNIL
+  | CONS (p, l) -> DBCONS (translate_db p venv, translate_db l venv)
+  | IFNIL (p1, p2, p3) ->
+      let db_p1 = translate_db p1 venv in
+      let db_p2 = translate_db p2 venv in
+      let db_p3 = translate_db p3 venv in
+      DBIFNIL (db_p1, db_p2, db_p3)
+  | HD p -> DBHD (translate_db p venv)
+  | TL p -> DBTL (translate_db p venv)
 
 let rec translate_env (tenv : env) : var_env * dbenv =
   match tenv with
@@ -86,4 +102,6 @@ and translate_db_val (v : value) (venv : var_env) : dbvalue =
   | THUNK (t, e) ->
       let v_env_inner, d_env_inner = translate_env e in
       DBTHUNK (translate_db t v_env_inner, d_env_inner)
+  | VNIL -> VDBNIL
+  | VCONS (t, l) -> VDBCONS (translate_db_val t venv, translate_db_val l venv)
   | VFIX _ -> failwith "db_term only has recursive functions"

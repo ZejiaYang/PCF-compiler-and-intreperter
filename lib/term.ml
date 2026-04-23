@@ -12,6 +12,11 @@ type term =
   | PAIR of term * term
   | FST of term
   | SND of term
+  | NIL
+  | CONS of term * term
+  | IFNIL of term * term * term
+  | HD of term
+  | TL of term
 
 and op = ADD | MINUS | MULTI | DIVIDE
 
@@ -23,6 +28,8 @@ and value =
   | VFIX of string * term * env
   | VFIXFUN of string * string * term * env
   | VPAIR of value * value
+  | VNIL
+  | VCONS of value * value
   | THUNK of term * env (* legacy for call-by-name *)
 
 let ( ++ ) a b = BOP (a, ADD, b)

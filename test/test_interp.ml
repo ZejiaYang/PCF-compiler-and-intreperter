@@ -28,4 +28,6 @@ let () =
       make_suite "pairs_by_value_recur" interp_by_value_recur pair_tests;
       make_suite "pairs_by_name" interp_by_name pair_tests;
       make_suite "cbn_test" interp_by_name cbn_tests;
+      make_suite "list_by_name" interp_by_name list_tests;
+      make_suite "list_by_value_recur" interp_by_value_recur list_tests;
     ]

@@ -53,6 +53,25 @@ let rec interp_by_name : interpreter =
       match interp_by_name (p, e) with
       | THUNK (PAIR (_, p2), e) -> interp_by_name (p2, e)
       | _ -> failwith "snd not pair")
+  | NIL -> VNIL
+  | CONS (t, l) ->
+      VCONS (THUNK (t, e), THUNK (l, e))
+      (*call-by-name, lazy evaluation for list*)
+  | IFNIL (y, p1, p2) -> (
+      match interp_by_name (y, e) with
+      | VNIL -> interp_by_name (p1, e)
+      | VCONS _ -> interp_by_name (p2, e)
+      | _ -> failwith "ifnil condition not list")
+  | HD p -> (
+      match interp_by_name (p, e) with
+      | VNIL -> failwith "empty list"
+      | VCONS (THUNK (t, e), l) -> interp_by_name (t, e)
+      | _ -> failwith "illegal construct")
+  | TL p -> (
+      match interp_by_name (p, e) with
+      | VNIL -> failwith "empty list"
+      | VCONS (_, THUNK (l, e)) -> interp_by_name (l, e)
+      | _ -> failwith "illegal construct")
 (* | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p) *)
 
 (* for fixed point operator, cannot interp by value *)
@@ -98,6 +117,23 @@ let rec interp_by_value : interpreter =
       match interp_by_value (p, e) with
       | VPAIR (_, v2) -> v2
       | _ -> failwith "snd not pair")
+  | NIL -> VNIL
+  | CONS (t, l) -> VCONS (interp_by_value (t, e), interp_by_value (l, e))
+  | IFNIL (y, p1, p2) -> (
+      match interp_by_value (y, e) with
+      | VNIL -> interp_by_value (p1, e)
+      | VCONS _ -> interp_by_value (p2, e)
+      | _ -> failwith "ifnil condition not list")
+  | HD t -> (
+      match interp_by_value (t, e) with
+      | VNIL -> failwith "empty list"
+      | VCONS (v, l) -> v
+      | _ -> failwith "illegal construct")
+  | TL t -> (
+      match interp_by_value (t, e) with
+      | VNIL -> failwith "empty list"
+      | VCONS (v, l) -> l
+      | _ -> failwith "illegal construct")
 
 (*
 call-by-value interperter with recursive closures
@@ -137,7 +173,12 @@ let rec interp_by_value_recur : interpreter =
                   NEXT (f, VFIXFUN (f, x, t, e1), e1) ) )
       | _ -> failwith "not a function in application")
   | LET (x, p1, p2) -> interp_by_value_recur (APP (FUN (x, p2), p1), e)
-  | FIX (f, FUN (x, t)) -> VFIXFUN (f, x, t, e)
+  | FIX (f, p) -> (
+      match p with
+      | FUN (x, t) -> VFIXFUN (f, x, t, e)
+      | _ ->
+          failwith
+            (Format.asprintf "impossible construct inside FIX %a" pp_term p))
   | PAIR (p1, p2) ->
       VPAIR (interp_by_value_recur (p1, e), interp_by_value_recur (p2, e))
   | FST p -> (
@@ -148,5 +189,21 @@ let rec interp_by_value_recur : interpreter =
       match interp_by_value (p, e) with
       | VPAIR (_, v2) -> v2
       | _ -> failwith "snd not pair")
-  | FIX _ ->
-      failwith (Format.asprintf "impossible construct inside FIX %a" pp_term p)
+  | NIL -> VNIL
+  | CONS (t, l) ->
+      VCONS (interp_by_value_recur (t, e), interp_by_value_recur (l, e))
+  | IFNIL (y, p1, p2) -> (
+      match interp_by_value_recur (y, e) with
+      | VNIL -> interp_by_value_recur (p1, e)
+      | VCONS _ -> interp_by_value_recur (p2, e)
+      | _ -> failwith "ifnil condition not list")
+  | HD t -> (
+      match interp_by_value_recur (t, e) with
+      | VNIL -> failwith "empty list"
+      | VCONS (v, l) -> v
+      | _ -> failwith "illegal construct")
+  | TL t -> (
+      match interp_by_value_recur (t, e) with
+      | VNIL -> failwith "empty list"
+      | VCONS (v, l) -> l
+      | _ -> failwith "illegal construct")

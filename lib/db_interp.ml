@@ -45,9 +45,26 @@ let rec dbinterp_by_name : dbinterpreter =
       match dbinterp_by_name (p, e) with
       | DBTHUNK (DBPAIR (_, p2), e) -> dbinterp_by_name (p2, e)
       | _ -> failwith "snd not pair")
+  | DBNIL -> VDBNIL
+  | DBCONS (t, l) ->
+      VDBCONS (DBTHUNK (t, e), DBTHUNK (l, e))
+      (*call-by-name, lazy evaluation for list*)
+  | DBIFNIL (y, p1, p2) -> (
+      match dbinterp_by_name (y, e) with
+      | VDBNIL -> dbinterp_by_name (p1, e)
+      | VDBCONS _ -> dbinterp_by_name (p2, e)
+      | _ -> failwith "ifnil condition not list")
+  | DBHD p -> (
+      match dbinterp_by_name (p, e) with
+      | VDBNIL -> failwith "empty list"
+      | VDBCONS (DBTHUNK (t, e), l) -> dbinterp_by_name (t, e)
+      | _ -> failwith "illegal construct")
+  | DBTL p -> (
+      match dbinterp_by_name (p, e) with
+      | VDBNIL -> failwith "empty list"
+      | VDBCONS (_, DBTHUNK (l, e)) -> dbinterp_by_name (l, e)
+      | _ -> failwith "illegal construct")
 
-(* for fixed point operator, cannot interp by value *)
-(* extended values *)
 let rec dbinterp_by_value : dbinterpreter =
  fun (p, e) ->
   match p with
@@ -91,3 +108,20 @@ let rec dbinterp_by_value : dbinterpreter =
       match dbinterp_by_value (p, e) with
       | VDBPAIR (_, v2) -> v2
       | _ -> failwith "snd not pair")
+  | DBNIL -> VDBNIL
+  | DBCONS (t, l) -> VDBCONS (dbinterp_by_value (t, e), dbinterp_by_value (l, e))
+  | DBIFNIL (y, p1, p2) -> (
+      match dbinterp_by_value (y, e) with
+      | VDBNIL -> dbinterp_by_value (p1, e)
+      | VDBCONS _ -> dbinterp_by_value (p2, e)
+      | _ -> failwith "ifnil condition not list")
+  | DBHD t -> (
+      match dbinterp_by_value (t, e) with
+      | VDBNIL -> failwith "empty list"
+      | VDBCONS (v, l) -> v
+      | _ -> failwith "illegal construct")
+  | DBTL t -> (
+      match dbinterp_by_value (t, e) with
+      | VDBNIL -> failwith "empty list"
+      | VDBCONS (v, l) -> l
+      | _ -> failwith "illegal construct")

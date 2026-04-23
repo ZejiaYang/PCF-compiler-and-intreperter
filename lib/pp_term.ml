@@ -21,9 +21,18 @@ let rec pp_term fmt = function
   | FIX (f, p) -> fprintf fmt "@[<2>fix %s.@ %a@]" f pp_term p
   | LET (x, p1, p2) ->
       fprintf fmt "@[<2>let %s = %a in@ %a@]" x pp_term p1 pp_term p2
+  (* --- Pair Extension --- *)
   | PAIR (p1, p2) -> fprintf fmt "@[<2>(%a , %a)@]" pp_term p1 pp_term p2
   | FST p -> fprintf fmt "@[<2>fst %a@]" pp_term p
   | SND p -> fprintf fmt "@[<2>snd %a@]" pp_term p
+  (* --- List Extension --- *)
+  | NIL -> fprintf fmt "nil"
+  | CONS (p1, p2) -> fprintf fmt "@[<2>(%a :: %a)@]" pp_term p1 pp_term p2
+  | IFNIL (p1, p2, p3) ->
+      fprintf fmt "@[<2>ifnil %a then@ %a@ else@ %a@]" pp_term p1 pp_term p2
+        pp_term p3
+  | HD p -> fprintf fmt "@[<2>hd %a@]" pp_term p
+  | TL p -> fprintf fmt "@[<2>tl %a@]" pp_term p
 
 let rec pp_db_term fmt = function
   | DBINT n -> fprintf fmt "%d" n
@@ -42,6 +51,15 @@ let rec pp_db_term fmt = function
       fprintf fmt "@[<2>(%a , %a)@]" pp_db_term p1 pp_db_term p2
   | DBFST p -> fprintf fmt "@[<2>fst %a@]" pp_db_term p
   | DBSND p -> fprintf fmt "@[<2>snd %a@]" pp_db_term p
+  (* --- List Extension --- *)
+  | DBNIL -> fprintf fmt "nil"
+  | DBCONS (p1, p2) ->
+      fprintf fmt "@[<2>(%a :: %a)@]" pp_db_term p1 pp_db_term p2
+  | DBIFNIL (p1, p2, p3) ->
+      fprintf fmt "@[<2>ifnil %a then@ %a@ else@ %a@]" pp_db_term p1 pp_db_term
+        p2 pp_db_term p3
+  | DBHD p -> fprintf fmt "@[<2>hd %a@]" pp_db_term p
+  | DBTL p -> fprintf fmt "@[<2>tl %a@]" pp_db_term p
 
 let rec pp_value fmt = function
   | VINT n -> fprintf fmt "%d" n
@@ -50,7 +68,10 @@ let rec pp_value fmt = function
   | VFIXFUN (f, x, p, _env) ->
       fprintf fmt "@[<2>fixfun %s ->@ fun %s ->@ %a@]" f x pp_term p
   | VPAIR (p1, p2) -> fprintf fmt "@[<2>(%a , %a)@]" pp_value p1 pp_value p2
-  | THUNK (t, _) -> fprintf fmt "@[<2><thunk %a>@]" pp_term t
+  | THUNK (t, _) ->
+      fprintf fmt "@[<2><thunk %a>@]" pp_term t (* --- List Extension --- *)
+  | VNIL -> fprintf fmt "nil"
+  | VCONS (v1, v2) -> fprintf fmt "@[<2>(%a :: %a)@]" pp_value v1 pp_value v2
 
 let rec pp_db_value fmt = function
   | VDBINT n -> fprintf fmt "%d" n
@@ -60,3 +81,7 @@ let rec pp_db_value fmt = function
   | VDBPAIR (t1, t2) ->
       fprintf fmt "@[<2>(%a , %a)@]" pp_db_value t1 pp_db_value t2
   | DBTHUNK (t, _) -> fprintf fmt "@[<2><thunk %a>@]" pp_db_term t
+  (* --- List Extension --- *)
+  | VDBNIL -> fprintf fmt "nil"
+  | VDBCONS (v1, v2) ->
+      fprintf fmt "@[<2>(%a :: %a)@]" pp_db_value v1 pp_db_value v2

@@ -45,6 +45,18 @@ let cbn_tests =
       term = FST (PAIR (INT 10, diverge));
       expected = VINT 10;
     };
+    {
+      name = "cbn_list_lazy_head";
+      (* This passes only if the tail is not evaluated! *)
+      term = HD (CONS (INT 10, diverge));
+      expected = VINT 10;
+    };
+    {
+      name = "cbn_list_lazy_tail";
+      (* This passes only if the head is not evaluated! *)
+      term = IFNIL (TL (CONS (diverge, NIL)), INT 1, INT 0);
+      expected = VINT 1;
+    };
   ]
 
 let standard_tests : abstract_test list =
@@ -90,4 +102,36 @@ let standard_tests : abstract_test list =
          APP (fact, INT 3));
       expected = VINT 6;
     };
+  ]
+
+let list_tests =
+  [
+    {
+      name = "list_head_extraction";
+      term = HD (CONS (INT 10, NIL));
+      expected = VINT 10;
+    };
+    {
+      name = "list_tail_is_nil";
+      term = IFNIL (TL (CONS (INT 10, NIL)), INT 1, INT 0);
+      expected = VINT 1;
+    };
+    {
+      name = "list_nested_head";
+      (* HEAD (TAIL (CONS (10, CONS (20, NIL)))) ==> 20 *)
+      term = HD (TL (CONS (INT 10, CONS (INT 20, NIL))));
+      expected = VINT 20;
+    };
+    {
+      name = "list_complex_compute";
+      (* HEAD (CONS (1 + 2, NIL)) ==> 3 *)
+      term = HD (CONS (BOP (INT 1, ADD, INT 2), NIL));
+      expected = VINT 3;
+    };
+    (* {
+      name = "list";
+      (* HEAD (CONS (1 + 2, NIL)) ==> 3 *)
+      term = CONS (BOP (INT 1, ADD, INT 2), NIL);
+      expected = VCONS (VINT 3, VNIL);
+    }; *)
   ]
