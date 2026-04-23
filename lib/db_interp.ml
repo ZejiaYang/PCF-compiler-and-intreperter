@@ -1,4 +1,5 @@
 open Db_term
+open Pp_term
 
 type dbinterpreter = dbterm * dbenv -> dbvalue
 
@@ -20,7 +21,7 @@ let rec dbinterp_by_name : dbinterpreter =
       let v2 = dbinterp_by_name (p2, e) in
       match (v1, op, v2) with
       | VDBINT n1, ADD, VDBINT n2 -> VDBINT (n1 + n2)
-      | VDBINT n1, MINUS, VDBINT n2 -> VDBINT (n1 - n2)
+      | VDBINT n1, MINUS, VDBINT n2 -> VDBINT (max (n1 - n2) 0)
       | VDBINT n1, MULTI, VDBINT n2 -> VDBINT (n1 * n2)
       | VDBINT n1, DIVIDE, VDBINT 0 -> failwith "divide by zero"
       | VDBINT n1, DIVIDE, VDBINT n2 -> VDBINT (n1 / n2)
@@ -58,12 +59,12 @@ let rec dbinterp_by_name : dbinterpreter =
       match dbinterp_by_name (p, e) with
       | VDBNIL -> failwith "empty list"
       | VDBCONS (DBTHUNK (t, e), l) -> dbinterp_by_name (t, e)
-      | _ -> failwith "illegal construct")
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))
   | DBTL p -> (
       match dbinterp_by_name (p, e) with
       | VDBNIL -> failwith "empty list"
       | VDBCONS (_, DBTHUNK (l, e)) -> dbinterp_by_name (l, e)
-      | _ -> failwith "illegal construct")
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))
 
 let rec dbinterp_by_value : dbinterpreter =
  fun (p, e) ->
@@ -76,7 +77,7 @@ let rec dbinterp_by_value : dbinterpreter =
       let v2 = dbinterp_by_value (p2, e) in
       match (v1, op, v2) with
       | VDBINT n1, ADD, VDBINT n2 -> VDBINT (n1 + n2)
-      | VDBINT n1, MINUS, VDBINT n2 -> VDBINT (n1 - n2)
+      | VDBINT n1, MINUS, VDBINT n2 -> VDBINT (max (n1 - n2) 0)
       | VDBINT n1, MULTI, VDBINT n2 -> VDBINT (n1 * n2)
       | VDBINT n1, DIVIDE, VDBINT 0 -> failwith "divide by zero"
       | VDBINT n1, DIVIDE, VDBINT n2 -> VDBINT (n1 / n2)
@@ -119,9 +120,9 @@ let rec dbinterp_by_value : dbinterpreter =
       match dbinterp_by_value (t, e) with
       | VDBNIL -> failwith "empty list"
       | VDBCONS (v, l) -> v
-      | _ -> failwith "illegal construct")
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))
   | DBTL t -> (
       match dbinterp_by_value (t, e) with
       | VDBNIL -> failwith "empty list"
       | VDBCONS (v, l) -> l
-      | _ -> failwith "illegal construct")
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))

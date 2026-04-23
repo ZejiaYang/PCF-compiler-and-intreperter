@@ -3,7 +3,7 @@ open Alcotest
 
 type abstract_test = { name : string; term : term; expected : value }
 
-let pair_tests =
+let pair_tests : abstract_test list =
   [
     {
       name = "pair_fst";
@@ -32,7 +32,7 @@ let pair_tests =
     };
   ]
 
-let cbn_tests =
+let cbn_tests : abstract_test list =
   let diverge = APP (FIX ("f", FUN ("x", APP (VAR "f", VAR "x"))), INT 0) in
   [
     {
@@ -56,6 +56,20 @@ let cbn_tests =
       (* This passes only if the head is not evaluated! *)
       term = IFNIL (TL (CONS (diverge, NIL)), INT 1, INT 0);
       expected = VINT 1;
+    };
+  ]
+
+let cbv_tests : abstract_test list =
+  [
+    {
+      name = "list";
+      term = CONS (BOP (INT 1, ADD, INT 2), NIL);
+      expected = VCONS (VINT 3, VNIL);
+    };
+    {
+      name = "list sorting";
+      term = CONS (BOP (INT 1, ADD, INT 2), NIL);
+      expected = VCONS (VINT 3, VNIL);
     };
   ]
 
@@ -128,10 +142,76 @@ let list_tests =
       term = HD (CONS (BOP (INT 1, ADD, INT 2), NIL));
       expected = VINT 3;
     };
-    (* {
-      name = "list";
-      (* HEAD (CONS (1 + 2, NIL)) ==> 3 *)
-      term = CONS (BOP (INT 1, ADD, INT 2), NIL);
-      expected = VCONS (VINT 3, VNIL);
-    }; *)
+  ]
+
+(* sorting algorithm tests *)
+(* helper insertion logic *)
+let insert_logic =
+  FIX
+    ( "insert",
+      FUN
+        ( "x",
+          FUN
+            ( "l",
+              IFNIL
+                ( VAR "l",
+                  CONS (VAR "x", NIL),
+                  IFZ
+                    ( BOP (VAR "x", MINUS, HD (VAR "l")),
+                      CONS (VAR "x", VAR "l"),
+                      (* x is smaller or equal, put at front *)
+                      CONS
+                        ( HD (VAR "l"),
+                          APP (APP (VAR "insert", VAR "x"), TL (VAR "l")) ) ) )
+            ) ) )
+
+(* Main: sort(list) *)
+let sort_logic =
+  FIX
+    ( "sort",
+      FUN
+        ( "l",
+          IFNIL
+            ( VAR "l",
+              NIL,
+              let head = HD (VAR "l") in
+              let sorted_tail = APP (VAR "sort", TL (VAR "l")) in
+              APP (APP (insert_logic, head), sorted_tail) ) ) )
+
+let sorting_tests_value =
+  [
+    {
+      name = "insertion_sort_simple";
+      term =
+        (let list_312 = CONS (INT 3, CONS (INT 1, CONS (INT 2, NIL))) in
+         APP (sort_logic, list_312));
+      (* Expected: VCONS(1, VCONS(2, VCONS(3, VNIL))) *)
+      expected = VCONS (VINT 1, VCONS (VINT 2, VCONS (VINT 3, VNIL)));
+    };
+    { name = "sort_empty_list"; term = APP (sort_logic, NIL); expected = VNIL };
+  ]
+
+let sorting_tests_name =
+  let list_312 = CONS (INT 3, CONS (INT 1, CONS (INT 2, NIL))) in
+  let sorted_list = APP (sort_logic, list_312) in
+  [
+    {
+      name = "insertion_sort_simple";
+      term = HD sorted_list;
+      (* Expected: VCONS(1, VCONS(2, VCONS(3, VNIL))) *)
+      expected = VINT 1;
+    };
+    {
+      name = "insertion_sort_simple";
+      term = HD (TL sorted_list);
+      (* Expected: VCONS(1, VCONS(2, VCONS(3, VNIL))) *)
+      expected = VINT 2;
+    };
+    {
+      name = "insertion_sort_simple";
+      term = HD (TL (TL sorted_list));
+      (* Expected: VCONS(1, VCONS(2, VCONS(3, VNIL))) *)
+      expected = VINT 3;
+    };
+    { name = "sort_empty_list"; term = APP (sort_logic, NIL); expected = VNIL };
   ]

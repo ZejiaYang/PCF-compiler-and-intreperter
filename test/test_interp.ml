@@ -30,4 +30,7 @@ let () =
       make_suite "cbn_test" interp_by_name cbn_tests;
       make_suite "list_by_name" interp_by_name list_tests;
       make_suite "list_by_value_recur" interp_by_value_recur list_tests;
+      make_suite "sorting_tests_by_value" interp_by_value_recur
+        sorting_tests_value;
+      make_suite "sorting_tests_by_name" interp_by_name sorting_tests_name;
     ]

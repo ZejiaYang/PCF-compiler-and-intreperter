@@ -28,7 +28,7 @@ let rec interp_by_name : interpreter =
       let v2 = interp_by_name (p2, e) in
       match (v1, op, v2) with
       | VINT n1, ADD, VINT n2 -> VINT (n1 + n2)
-      | VINT n1, MINUS, VINT n2 -> VINT (n1 - n2)
+      | VINT n1, MINUS, VINT n2 -> VINT (max (n1 - n2) 0)
       | VINT n1, MULTI, VINT n2 -> VINT (n1 * n2)
       | VINT n1, DIVIDE, VINT 0 -> failwith "divide by zero"
       | VINT n1, DIVIDE, VINT n2 -> VINT (n1 / n2)
@@ -66,12 +66,12 @@ let rec interp_by_name : interpreter =
       match interp_by_name (p, e) with
       | VNIL -> failwith "empty list"
       | VCONS (THUNK (t, e), l) -> interp_by_name (t, e)
-      | _ -> failwith "illegal construct")
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
   | TL p -> (
       match interp_by_name (p, e) with
       | VNIL -> failwith "empty list"
       | VCONS (_, THUNK (l, e)) -> interp_by_name (l, e)
-      | _ -> failwith "illegal construct")
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
 (* | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p) *)
 
 (* for fixed point operator, cannot interp by value *)
@@ -91,7 +91,7 @@ let rec interp_by_value : interpreter =
       let v2 = interp_by_value (p2, e) in
       match (v1, op, v2) with
       | VINT n1, ADD, VINT n2 -> VINT (n1 + n2)
-      | VINT n1, MINUS, VINT n2 -> VINT (n1 - n2)
+      | VINT n1, MINUS, VINT n2 -> VINT (max (n1 - n2) 0)
       | VINT n1, MULTI, VINT n2 -> VINT (n1 * n2)
       | VINT n1, DIVIDE, VINT 0 -> failwith "divide by zero"
       | VINT n1, DIVIDE, VINT n2 -> VINT (n1 / n2)
@@ -128,12 +128,12 @@ let rec interp_by_value : interpreter =
       match interp_by_value (t, e) with
       | VNIL -> failwith "empty list"
       | VCONS (v, l) -> v
-      | _ -> failwith "illegal construct")
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
   | TL t -> (
       match interp_by_value (t, e) with
       | VNIL -> failwith "empty list"
       | VCONS (v, l) -> l
-      | _ -> failwith "illegal construct")
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
 
 (*
 call-by-value interperter with recursive closures
@@ -149,7 +149,7 @@ let rec interp_by_value_recur : interpreter =
       let v2 = interp_by_value_recur (p2, e) in
       match (v1, op, v2) with
       | VINT n1, ADD, VINT n2 -> VINT (n1 + n2)
-      | VINT n1, MINUS, VINT n2 -> VINT (n1 - n2)
+      | VINT n1, MINUS, VINT n2 -> VINT (max (n1 - n2) 0)
       | VINT n1, MULTI, VINT n2 -> VINT (n1 * n2)
       | VINT n1, DIVIDE, VINT 0 -> failwith "divide by zero"
       | VINT n1, DIVIDE, VINT n2 -> VINT (n1 / n2)
@@ -196,14 +196,14 @@ let rec interp_by_value_recur : interpreter =
       match interp_by_value_recur (y, e) with
       | VNIL -> interp_by_value_recur (p1, e)
       | VCONS _ -> interp_by_value_recur (p2, e)
-      | _ -> failwith "ifnil condition not list")
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
   | HD t -> (
       match interp_by_value_recur (t, e) with
       | VNIL -> failwith "empty list"
       | VCONS (v, l) -> v
-      | _ -> failwith "illegal construct")
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
   | TL t -> (
       match interp_by_value_recur (t, e) with
       | VNIL -> failwith "empty list"
       | VCONS (v, l) -> l
-      | _ -> failwith "illegal construct")
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
