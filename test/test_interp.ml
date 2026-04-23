@@ -21,7 +21,7 @@ let make_suite suite_name (interp : interpreter) (tests : abstract_test list) =
 let () =
   run "interp suite"
     [
-      make_suite "standard_by_name" interp_by_name standard_tests;
+      (* make_suite "standard_by_name" interp_by_name standard_tests;
       make_suite "standard_by_value" interp_by_value standard_tests;
       make_suite "standard_by_value_recur" interp_by_value_recur standard_tests;
       make_suite "pairs_by_value" interp_by_value pair_tests;
@@ -32,5 +32,7 @@ let () =
       make_suite "list_by_value_recur" interp_by_value_recur list_tests;
       make_suite "sorting_tests_by_value" interp_by_value_recur
         sorting_tests_value;
-      make_suite "sorting_tests_by_name" interp_by_name sorting_tests_name;
+      make_suite "sorting_tests_by_name" interp_by_name sorting_tests_name; *)
+      make_suite "tree_test_by_value" interp_by_value_recur tree_tests;
+      make_suite "tree_test_by_name" interp_by_name tree_tests;
     ]

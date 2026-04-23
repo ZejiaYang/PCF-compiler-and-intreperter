@@ -9,14 +9,23 @@ type term =
   | IFZ of term * term * term
   | FIX of string * term
   | LET of string * term * term
+  (* --- Pair --- *)
   | PAIR of term * term
   | FST of term
   | SND of term
+  (* --- List --- *)
   | NIL
   | CONS of term * term
   | IFNIL of term * term * term
   | HD of term
   | TL of term
+  (* --- Tree --- *)
+  | LEAF of term
+  | TREE of term * term
+  | ITEM of term
+  | IFLEAF of term * term * term
+  | LTREE of term
+  | RTREE of term
 
 and op = ADD | MINUS | MULTI | DIVIDE
 
@@ -27,10 +36,15 @@ and value =
   | VFUN of string * term * env
   | VFIX of string * term * env
   | VFIXFUN of string * string * term * env
+  | THUNK of term * env (* legacy for call-by-name *)
+  (* -- Pair -- *)
   | VPAIR of value * value
+  (* -- List -- *)
   | VNIL
   | VCONS of value * value
-  | THUNK of term * env (* legacy for call-by-name *)
+  (* -- Tree -- *)
+  | VLEAF of value
+  | VTREE of value * value
 
 let ( ++ ) a b = BOP (a, ADD, b)
 let ( -- ) a b = BOP (a, MINUS, b)

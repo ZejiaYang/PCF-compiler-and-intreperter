@@ -37,6 +37,7 @@ let rec dbinterp_by_name : dbinterpreter =
       | _ -> failwith "not a function in application")
   | DBLET (p1, p2) -> dbinterp_by_name (DBAPP (DBFUN p2, p1), e)
   | DBFIXFUN p1 -> dbinterp_by_name (DBFUN p1, DBNEXT (DBTHUNK (p, e), e))
+  (* -- Pair -- *)
   | DBPAIR (p1, p2) -> DBTHUNK (p, e)
   | DBFST p -> (
       match dbinterp_by_name (p, e) with
@@ -46,6 +47,7 @@ let rec dbinterp_by_name : dbinterpreter =
       match dbinterp_by_name (p, e) with
       | DBTHUNK (DBPAIR (_, p2), e) -> dbinterp_by_name (p2, e)
       | _ -> failwith "snd not pair")
+  (* -- List -- *)
   | DBNIL -> VDBNIL
   | DBCONS (t, l) ->
       VDBCONS (DBTHUNK (t, e), DBTHUNK (l, e))
@@ -64,6 +66,28 @@ let rec dbinterp_by_name : dbinterpreter =
       match dbinterp_by_name (p, e) with
       | VDBNIL -> failwith "empty list"
       | VDBCONS (_, DBTHUNK (l, e)) -> dbinterp_by_name (l, e)
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))
+  (* -- Tree -- *)
+  | DBLEAF p -> VDBLEAF (DBTHUNK (p, e))
+  | DBTREE (l, u) -> VDBTREE (DBTHUNK (l, e), DBTHUNK (u, e))
+  | DBITEM p -> (
+      match dbinterp_by_name (p, e) with
+      | VDBLEAF (DBTHUNK (p, e)) -> dbinterp_by_name (p, e)
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))
+  | DBIFLEAF (p, p1, p2) -> (
+      match dbinterp_by_name (p, e) with
+      | VDBLEAF _ -> dbinterp_by_name (p1, e)
+      | VDBTREE _ -> dbinterp_by_name (p2, e)
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))
+  | DBLTREE p -> (
+      match dbinterp_by_name (p, e) with
+      | VDBTREE (DBTHUNK (p, e), _) -> dbinterp_by_name (p, e)
+      | VDBLEAF _ -> failwith "LTREE a leaf"
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))
+  | DBRTREE p -> (
+      match dbinterp_by_name (p, e) with
+      | VDBTREE (_, DBTHUNK (p, e)) -> dbinterp_by_name (p, e)
+      | VDBLEAF _ -> failwith "RTREE a leaf"
       | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))
 
 let rec dbinterp_by_value : dbinterpreter =
@@ -99,6 +123,7 @@ let rec dbinterp_by_value : dbinterpreter =
       | _ -> failwith "not a function in application")
   | DBLET (p1, p2) -> dbinterp_by_value (DBAPP (DBFUN p2, p1), e)
   | DBFIXFUN p1 -> VDBFIXFUN (p1, e)
+  (* -- Pair -- *)
   | DBPAIR (p1, p2) ->
       VDBPAIR (dbinterp_by_value (p1, e), dbinterp_by_value (p2, e))
   | DBFST p -> (
@@ -109,6 +134,7 @@ let rec dbinterp_by_value : dbinterpreter =
       match dbinterp_by_value (p, e) with
       | VDBPAIR (_, v2) -> v2
       | _ -> failwith "snd not pair")
+  (* -- List -- *)
   | DBNIL -> VDBNIL
   | DBCONS (t, l) -> VDBCONS (dbinterp_by_value (t, e), dbinterp_by_value (l, e))
   | DBIFNIL (y, p1, p2) -> (
@@ -125,4 +151,26 @@ let rec dbinterp_by_value : dbinterpreter =
       match dbinterp_by_value (t, e) with
       | VDBNIL -> failwith "empty list"
       | VDBCONS (v, l) -> l
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))
+  (* -- Tree -- *)
+  | DBLEAF n -> VDBLEAF (dbinterp_by_value (n, e))
+  | DBTREE (l, r) -> VDBTREE (dbinterp_by_value (l, e), dbinterp_by_value (r, e))
+  | DBITEM p -> (
+      match dbinterp_by_value (p, e) with
+      | VDBLEAF n -> n
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))
+  | DBIFLEAF (p, p1, p2) -> (
+      match dbinterp_by_value (p, e) with
+      | VDBLEAF n -> dbinterp_by_value (p1, e)
+      | VDBTREE _ -> dbinterp_by_value (p2, e)
+      | _ -> failwith "IFLEAF not tree")
+  | DBLTREE p -> (
+      match dbinterp_by_value (p, e) with
+      | VDBTREE (l, _) -> l
+      | VDBLEAF _ -> failwith "LTREE a leaf"
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))
+  | DBRTREE p -> (
+      match dbinterp_by_value (p, e) with
+      | VDBTREE (_, r) -> r
+      | VDBLEAF _ -> failwith "RTREE a leaf"
       | _ -> failwith (Format.asprintf "impossible construct %a" pp_db_term p))

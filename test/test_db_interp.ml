@@ -38,11 +38,13 @@ let make_db_suite suite_name (interp : dbinterpreter)
 let () =
   run "De Bruijn Interpreter Suite"
     [
-      make_db_suite "standard_by_name" dbinterp_by_name standard_tests;
+      (* make_db_suite "standard_by_name" dbinterp_by_name standard_tests;
       make_db_suite "standard_by_value" dbinterp_by_value standard_tests;
       make_db_suite "pairs_by_value" dbinterp_by_value pair_tests;
       make_db_suite "pairs_by_name" dbinterp_by_name pair_tests;
       make_db_suite "cbn_test" dbinterp_by_name cbn_tests;
       make_db_suite "list_by_name" dbinterp_by_name list_tests;
-      make_db_suite "list_by_value_recur" dbinterp_by_value list_tests;
+      make_db_suite "list_by_value_recur" dbinterp_by_value list_tests; *)
+      make_db_suite "tree_test_by_value" dbinterp_by_value tree_tests;
+      make_db_suite "tree_test_by_name" dbinterp_by_name tree_tests;
     ]

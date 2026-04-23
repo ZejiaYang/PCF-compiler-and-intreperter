@@ -57,19 +57,18 @@ let cbn_tests : abstract_test list =
       term = IFNIL (TL (CONS (diverge, NIL)), INT 1, INT 0);
       expected = VINT 1;
     };
-  ]
-
-let cbv_tests : abstract_test list =
-  [
     {
-      name = "list";
-      term = CONS (BOP (INT 1, ADD, INT 2), NIL);
-      expected = VCONS (VINT 3, VNIL);
+      name = "tree_laziness_ltree";
+      (* ITEM (LTREE (TREE (LEAF 7, diverge))) ==> 7 *)
+      (* Should pass without hitting the infinite loop in the right branch *)
+      term = ITEM (LTREE (TREE (LEAF (INT 7), diverge)));
+      expected = VINT 7;
     };
     {
-      name = "list sorting";
-      term = CONS (BOP (INT 1, ADD, INT 2), NIL);
-      expected = VCONS (VINT 3, VNIL);
+      name = "tree_laziness_rtree";
+      (* ITEM (RTREE (TREE (diverge, LEAF 8))) ==> 8 *)
+      term = ITEM (RTREE (TREE (diverge, LEAF (INT 8))));
+      expected = VINT 8;
     };
   ]
 
@@ -196,22 +195,81 @@ let sorting_tests_name =
   let sorted_list = APP (sort_logic, list_312) in
   [
     {
-      name = "insertion_sort_simple";
+      name = "insertion_sort_simple 1st";
       term = HD sorted_list;
-      (* Expected: VCONS(1, VCONS(2, VCONS(3, VNIL))) *)
       expected = VINT 1;
     };
     {
-      name = "insertion_sort_simple";
+      name = "insertion_sort_simple 2st";
       term = HD (TL sorted_list);
-      (* Expected: VCONS(1, VCONS(2, VCONS(3, VNIL))) *)
       expected = VINT 2;
     };
     {
-      name = "insertion_sort_simple";
+      name = "insertion_sort_simple 3st";
       term = HD (TL (TL sorted_list));
-      (* Expected: VCONS(1, VCONS(2, VCONS(3, VNIL))) *)
       expected = VINT 3;
     };
     { name = "sort_empty_list"; term = APP (sort_logic, NIL); expected = VNIL };
+  ]
+
+let sum_tree_logic =
+  FIX
+    ( "sum",
+      FUN
+        ( "t",
+          IFLEAF
+            ( VAR "t",
+              ITEM (VAR "t"),
+              BOP
+                ( APP (VAR "sum", LTREE (VAR "t")),
+                  ADD,
+                  APP (VAR "sum", RTREE (VAR "t")) ) ) ) )
+
+let tree_tests =
+  [
+    {
+      name = "leaf_item_extraction";
+      (* ITEM (LEAF 42) ==> 42 *)
+      term = ITEM (LEAF (INT 42));
+      expected = VINT 42;
+    };
+    {
+      name = "tree_left_child_extraction";
+      (* ITEM (LTREE (TREE (LEAF 1, LEAF 2))) ==> 1 *)
+      term = ITEM (LTREE (TREE (LEAF (INT 1), LEAF (INT 2))));
+      expected = VINT 1;
+    };
+    {
+      name = "tree_right_child_extraction";
+      (* ITEM (RTREE (TREE (LEAF 1, LEAF 2))) ==> 2 *)
+      term = ITEM (RTREE (TREE (LEAF (INT 1), LEAF (INT 2))));
+      expected = VINT 2;
+    };
+    {
+      name = "ifleaf_base_case";
+      (* ifleaf (LEAF 0) then 1 else 2 ==> 1 *)
+      term = IFLEAF (LEAF (INT 0), INT 1, INT 2);
+      expected = VINT 1;
+    };
+    {
+      name = "ifleaf_recursive_case";
+      (* ifleaf (TREE (LEAF 1, LEAF 2)) then 1 else 2 ==> 2 *)
+      term = IFLEAF (TREE (LEAF (INT 1), LEAF (INT 2)), INT 1, INT 2);
+      expected = VINT 2;
+    };
+    {
+      name = "nested_tree_navigation";
+      (* ITEM (RTREE (LTREE (TREE (TREE (LEAF 0, LEAF 99), LEAF 0)))) ==> 99 *)
+      term =
+        ITEM
+          (RTREE
+             (LTREE (TREE (TREE (LEAF (INT 0), LEAF (INT 99)), LEAF (INT 0)))));
+      expected = VINT 99;
+    };
+    {
+      name = "recursive_tree_sum";
+      (* sum (TREE (LEAF 5, LEAF 10)) ==> 15 *)
+      term = APP (sum_tree_logic, TREE (LEAF (INT 5), LEAF (INT 10)));
+      expected = VINT 15;
+    };
   ]

@@ -44,6 +44,7 @@ let rec interp_by_name : interpreter =
       | _ -> failwith "not a function in application")
   | LET (x, p1, p2) -> interp_by_name (APP (FUN (x, p2), p1), e)
   | FIX (x, p1) -> interp_by_name (APP (FUN (x, p1), p), e)
+  (* -- Pair -- *)
   | PAIR (p1, p2) -> THUNK (p, e)
   | FST p -> (
       match interp_by_name (p, e) with
@@ -53,6 +54,7 @@ let rec interp_by_name : interpreter =
       match interp_by_name (p, e) with
       | THUNK (PAIR (_, p2), e) -> interp_by_name (p2, e)
       | _ -> failwith "snd not pair")
+  (* -- List -- *)
   | NIL -> VNIL
   | CONS (t, l) ->
       VCONS (THUNK (t, e), THUNK (l, e))
@@ -72,7 +74,28 @@ let rec interp_by_name : interpreter =
       | VNIL -> failwith "empty list"
       | VCONS (_, THUNK (l, e)) -> interp_by_name (l, e)
       | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
-(* | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p) *)
+  (* -- Tree -- *)
+  | LEAF p -> VLEAF (THUNK (p, e))
+  | TREE (l, u) -> VTREE (THUNK (l, e), THUNK (u, e))
+  | ITEM p -> (
+      match interp_by_name (p, e) with
+      | VLEAF (THUNK (p, e)) -> interp_by_name (p, e)
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
+  | IFLEAF (p, p1, p2) -> (
+      match interp_by_name (p, e) with
+      | VLEAF _ -> interp_by_name (p1, e)
+      | VTREE _ -> interp_by_name (p2, e)
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
+  | LTREE p -> (
+      match interp_by_name (p, e) with
+      | VTREE (THUNK (p, e), _) -> interp_by_name (p, e)
+      | VLEAF _ -> failwith "LTREE a leaf"
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
+  | RTREE p -> (
+      match interp_by_name (p, e) with
+      | VTREE (_, THUNK (p, e)) -> interp_by_name (p, e)
+      | VLEAF _ -> failwith "RTREE a leaf"
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
 
 (* for fixed point operator, cannot interp by value *)
 (* extended values *)
@@ -108,6 +131,7 @@ let rec interp_by_value : interpreter =
       | _ -> failwith "not a function in application")
   | LET (x, p1, p2) -> interp_by_value (APP (FUN (x, p2), p1), e)
   | FIX (x, p1) -> interp_by_value (p1, NEXT (x, VFIX (x, p, e), e))
+  (* -- Pair -- *)
   | PAIR (p1, p2) -> VPAIR (interp_by_value (p1, e), interp_by_value (p2, e))
   | FST p -> (
       match interp_by_value (p, e) with
@@ -117,6 +141,7 @@ let rec interp_by_value : interpreter =
       match interp_by_value (p, e) with
       | VPAIR (_, v2) -> v2
       | _ -> failwith "snd not pair")
+  (* -- List -- *)
   | NIL -> VNIL
   | CONS (t, l) -> VCONS (interp_by_value (t, e), interp_by_value (l, e))
   | IFNIL (y, p1, p2) -> (
@@ -133,6 +158,28 @@ let rec interp_by_value : interpreter =
       match interp_by_value (t, e) with
       | VNIL -> failwith "empty list"
       | VCONS (v, l) -> l
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
+  (* -- Tree -- *)
+  | LEAF n -> VLEAF (interp_by_value (n, e))
+  | TREE (l, r) -> VTREE (interp_by_value (l, e), interp_by_value (r, e))
+  | ITEM p -> (
+      match interp_by_value (p, e) with
+      | VLEAF n -> n
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
+  | IFLEAF (p, p1, p2) -> (
+      match interp_by_value (p, e) with
+      | VLEAF n -> interp_by_value (p1, e)
+      | VTREE _ -> interp_by_value (p2, e)
+      | _ -> failwith "IFLEAF not tree")
+  | LTREE p -> (
+      match interp_by_value (p, e) with
+      | VTREE (l, _) -> l
+      | VLEAF _ -> failwith "LTREE a leaf"
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
+  | RTREE p -> (
+      match interp_by_value (p, e) with
+      | VTREE (_, r) -> r
+      | VLEAF _ -> failwith "RTREE a leaf"
       | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
 
 (*
@@ -206,4 +253,27 @@ let rec interp_by_value_recur : interpreter =
       match interp_by_value_recur (t, e) with
       | VNIL -> failwith "empty list"
       | VCONS (v, l) -> l
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
+  (* -- Tree -- *)
+  | LEAF n -> VLEAF (interp_by_value_recur (n, e))
+  | TREE (l, r) ->
+      VTREE (interp_by_value_recur (l, e), interp_by_value_recur (r, e))
+  | ITEM p -> (
+      match interp_by_value_recur (p, e) with
+      | VLEAF n -> n
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
+  | IFLEAF (p, p1, p2) -> (
+      match interp_by_value_recur (p, e) with
+      | VLEAF n -> interp_by_value_recur (p1, e)
+      | VTREE _ -> interp_by_value_recur (p2, e)
+      | _ -> failwith "IFLEAF not tree")
+  | LTREE p -> (
+      match interp_by_value_recur (p, e) with
+      | VTREE (l, _) -> l
+      | VLEAF _ -> failwith "LTREE a leaf"
+      | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
+  | RTREE p -> (
+      match interp_by_value_recur (p, e) with
+      | VTREE (_, r) -> r
+      | VLEAF _ -> failwith "RTREE a leaf"
       | _ -> failwith (Format.asprintf "impossible construct %a" pp_term p))
